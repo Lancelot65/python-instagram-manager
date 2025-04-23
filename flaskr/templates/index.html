@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Comptes{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">Instagram account</h2>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for acc in accounts %}
+    <div class="col">
+<a class="text-decoration-none text-dark" href="/account/{{ acc.username }}">
+<div class="card h-100 shadow-sm">
+<img alt="{{ acc.username }}" class="card-img-top" src="{{ url_for('static', filename='images/' + acc.image) }}" style="height: 200px; object-fit: cover;"/>
+<div class="card-body">
+<h5 class="card-title mb-2">{{ acc.username }}</h5>
+<p class="card-text mb-1"><strong>Followers :</strong> {{ acc.followers }}</p>
+<p class="card-text mb-1"><strong>Following :</strong> {{ acc.following }}</p>
+<p class="card-text"><strong>Posts :</strong> {{ acc.posts }}</p>
+</div>
+</div>
+</a>
+</div>
+    {% endfor %}
+
+    <!-- Ajouter un compte -->
+<div class="col">
+<a class="text-decoration-none text-muted" href="/settings">
+<div class="card h-100 shadow-sm border-dashed d-flex align-items-center justify-content-center" style="border: 2px dashed #bbb;">
+<div class="card-body d-flex flex-column align-items-center justify-content-center">
+<div class="display-4 fw-bold mb-2">+</div>
+<div>Ajouter un compte</div>
+</div>
+</div>
+</a>
+</div>
+</div>
+{% endblock %}

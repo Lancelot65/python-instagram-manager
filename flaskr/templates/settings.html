@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter un compte{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-primary text-center">Ajouter un nouveau compte Instagram</h2>
+<form action="/add_account" class="card p-4 shadow-sm mx-auto" enctype="multipart/form-data" method="POST" style="max-width: 600px; border-radius: 12px;">
+<div class="mb-3">
+<label class="form-label fw-semibold" for="username">Nom d'utilisateur</label>
+<div class="input-group">
+<span class="input-group-text"><i class="bi bi-person"></i></span>
+<input class="form-control" id="username" name="username" placeholder="ex: john_doe" required="" type="text"/>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label fw-semibold" for="password">Mot de passe</label>
+<div class="input-group">
+<span class="input-group-text"><i class="bi bi-lock"></i></span>
+<input class="form-control" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+<button class="btn btn-outline-secondary" id="togglePassword" type="button">
+<i class="bi bi-eye-slash" id="toggleIcon"></i>
+</button>
+</div>
+</div>
+<div class="d-grid">
+<button class="btn btn-primary btn-lg mt-3" type="submit">Ajouter le compte</button>
+</div>
+<script>
+        const togglePassword = document.getElementById("togglePassword");
+        const passwordInput = document.getElementById("password");
+        const toggleIcon = document.getElementById("toggleIcon");
+
+        togglePassword.addEventListener("click", function () {
+            const isPassword = passwordInput.type === "password";
+            passwordInput.type = isPassword ? "text" : "password";
+            toggleIcon.classList.toggle("bi-eye");
+            toggleIcon.classList.toggle("bi-eye-slash");
+        });
+    </script>
+</form>
+{% endblock %}

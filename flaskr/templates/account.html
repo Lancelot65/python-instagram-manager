@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ account.username }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Infos du compte -->
+    <div class="card mb-4 shadow-sm">
+        <div class="row g-0 align-items-center">
+            <div class="col-md-3 text-center p-4">
+                <img alt="Image de compte" class="rounded-circle shadow" src="{{ url_for('static', filename='images/' + account.image) }}" style="width: 150px; height: 150px; object-fit: cover; border: 4px solid #1a73e8;"/>
+                <h4 class="mt-3">{{ account.username }}</h4>
+            </div>
+            <div class="{% if not fonction %}col-md-9{% else %}col-md-5{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Statistiques</h5>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><strong>Followers :</strong> {{ account.followers }}</li>
+                        <li class="list-group-item"><strong>Following :</strong> {{ account.following }}</li>
+                        <li class="list-group-item"><strong>Posts :</strong> {{ account.posts }}</li>
+                    </ul>
+                </div>
+            </div>
+{% if fonction %}
+            <div class="col-md-4">
+                <!-- Formulaire de sélection de fonction -->
+                                <div class="d-flex flex-column mb-4">
+                    <form action="/account/{{ account.username }}/tool" class="d-flex flex-column gap-2" method="POST">
+                        <div>
+                            <label class="form-label" for="tool_function">Fonction</label>
+                            <select class="form-select" id="tool_function" name="tool_function" required="">
+                                <option disabled="" selected="" value="">Choisir...</option>
+                                {% for func in fonction %}
+                                <option value={{ func.func_name }}>{{ func.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="param_int">Paramètre (int)</label>
+                            <input class="form-control" id="param_int" name="param_int" placeholder="Facultatif" type="number"/>
+                        </div>
+                        <div>
+                            <label class="form-label" for="param_str">Paramètre (texte)</label>
+                            <input class="form-control" id="param_str" name="param_str" placeholder="Facultatif" type="text"/>
+                        </div>
+                        <button class="btn btn-primary" type="submit">Exécuter</button>
+                    </form>
+                </div>
+                            </div>
+{% endif %}
+        </div>
+    </div>
+    <div class="row">
+        <!-- Espace pour les graphiques -->
+        <div class="col-md-6 mb-4">
+            <canvas id="viewsChart"></canvas>
+        </div>
+        <div class="col-md-6 mb-4">
+            <canvas id="followsChart"></canvas>
+        </div>
+        <div class="col-md-6 mb-4">
+            <canvas id="likesChart"></canvas>
+        </div>
+        <div class="col-md-6 mb-4">
+            <canvas id="commentsChart"></canvas>
+        </div>
+    </div>
+    <!-- Derniers messages reçus -->
+    <div class="mt-5">
+        <h5 class="mb-3">📥 Derniers messages reçus</h5>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+            {% for msg in messages %}
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="card-title mb-2">
+                            <strong>{{ msg.sender }}</strong>
+                        </h6>
+                        <p class="card-text text-muted mb-2" style="font-size: 0.95rem;">{{ msg.content }}</p>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        {{ msg.date }}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col">
+                <div class="card text-muted text-center p-3">
+                    Aucun message pour l’instant.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <a class="btn btn-outline-secondary mt-4" href="/">← Retour aux comptes</a>
+</div>
+<!-- ChartJS -->
+<script>
+    const labels = Object.keys({{ views_data | tojson }});
+
+    function renderChart(id, label, data, color, type='line') {
+        new Chart(document.getElementById(id).getContext('2d'), {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: Object.values(data),
+                    backgroundColor: type === 'bar' ? color : color + '33',
+                    borderColor: color,
+                    fill: type === 'line',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { display: true } }
+            }
+        });
+    }
+
+    async function loadChartData(chartId, label, filePath, color, type = 'line') {
+        try {
+            const response = await fetch(filePath);
+            const data = await response.json();
+
+            // Définir les labels si ce n'est pas encore fait
+            if (labels.length === 0) {
+                Object.keys(data).forEach(key => labels.push(key));
+            }
+
+            renderChart(chartId, label, Object.values(data), color, type);
+        } catch (error) {
+            console.error(`Erreur lors du chargement des données pour ${chartId}:`, error);
+        }
+    }
+
+    loadChartData('viewsChart', 'Vues', "/static/data/{{ account.username }}/views_data.json", '#1a73e8');
+    renderChart('followsChart', 'Follows', {{ follows_data | tojson }}, '#28a745', 'bar');
+    renderChart('likesChart', 'Likes', {{ likes_data | tojson }}, '#e91e63');
+    renderChart('commentsChart', 'Commentaires', {{ comments_data | tojson }}, '#ff9800', 'bar');
+</script>
+{% endblock %}
