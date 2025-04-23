@@ -1,20 +1,33 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import json
+from .instagram import Instagram
+import os
+import requests
 
 app = Flask(__name__)
 app.secret_key = "dev"
 
 def load_accounts():
-    with open('.cache/account.json', 'r') as f:
-        return json.load(f)
+    DATA_DIR = os.path.dirname(__file__) + '/static/data'
+    os.makedirs(DATA_DIR, exist_ok=True)
+    account = []
+    for folder in os.listdir(DATA_DIR):
+        folder_path = os.path.join(DATA_DIR, folder)
+        json_path = os.path.join(folder_path, f"{folder}.json")
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                try:
+                    data = json.load(f)
+                    account.append(data)
+                except json.JSONDecodeError:
+                    print(f"Erreur de lecture du fichier JSON: {json_path}")
+    return account
 
 @app.route('/')
 def index():
     accounts = load_accounts()
-    selected_username = request.args.get('username')
-    settings = request.args.get('settings') is not None
-    selected_account = next((acc for acc in accounts if acc['username'] == selected_username), None) if selected_username else None
-    return render_template('index.html', accounts=accounts, selected=selected_account, settings=settings)
+    
+    return render_template('index.html', accounts=accounts)
 
 @app.route('/settings')
 def settings():
@@ -25,32 +38,43 @@ def settings():
 def add_account_route():
     # Récupération des données
     username = request.form['username']
-    password = request.form.get('password')  # ⚠️ stocké en clair (améliorable)
+    if username in load_accounts():
+        flash(f"Déjà suivi", "defaite")
+        return redirect(url_for('settings'))
+    try:
+        Instagram(username).save_user()
+    except Exception as e:
+        print(e)
+        flash(f"Impossible de récupéré les donnée de « {username} »", "defaite")
+        return redirect(url_for('index'))
+    
+    
     flash(f"✅ Le compte « {username} » a été ajouté avec succès !", "success")
-    # # Upload de l'image
-    # image = request.files['image']
-    # if image.filename == "":
-    #     return "Aucune image sélectionnée", 400
+    
+    data = next((acc for acc in load_accounts() if acc['username'] == username), None)
+    
+    image_url = data['profile_picture_hd'] if data['profile_picture_hd'] else data['profile_picture']
+    dest_folder = os.path.join(os.path.dirname(__file__), 'static', 'images')
+    image_path = os.path.join(dest_folder, f"{username}.jpg")
 
-    # image_filename = secure_filename(image.filename)
-    # image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
-
-    # # Création de l'objet compte
-    # new_account = {
-    #     "username": username,
-    #     "password": password,  # peut être hashé si tu veux
-    # }
-
-    # # Sauvegarde
-    # add_account(new_account, image_filename)
-    print('add acount')
-
+    try:
+        response = requests.get(image_url)
+        if response.status_code == 200:
+            os.makedirs(dest_folder, exist_ok=True)
+            with open(image_path, 'wb') as f:
+                f.write(response.content)
+        else:
+            print("error resonse")
+            flash(f"Impossible de récupéré la photo, u autre essaie sera fait pus tard", "defaite")
+    except Exception as e:
+        print("error jsp", e)
+        flash(f"Impossible de récupéré la photo, u autre essaie sera fait pus tard", "defaite")
     return redirect(url_for('index'))
 
 @app.route("/account/<username>")
 def view_account(username):
     accounts = load_accounts()
-    account = next((acc for acc in accounts if acc["username"] == username), None)
+    account = next((acc for acc in accounts if acc['username'] == username), None)
     
     views_data = {
         "2025-04-15": 1200,
@@ -85,7 +109,7 @@ def view_account(username):
         {"sender": "unknown", "content": "Check mon profil 🔥", "date": "2025-04-18"},
     ]
 
-    fonction = [    ]
+    fonction = ["publier"]
 
 
     return render_template("account.html", account=account,
