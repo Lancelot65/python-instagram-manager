@@ -3,7 +3,10 @@
 {% block title %}Comptes{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center">Instagram account</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-center">Instagram account</h2>
+    <a href="/refresh" class="btn btn-primary">Refresh</a>
+</div>
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for acc in accounts %}
     <div class="col">
@@ -12,8 +15,8 @@
         <img alt="{{ acc.username }}" class="card-img-top" src="{{ url_for('static', filename='images/' + acc.username + '.jpg') }}" style="height: 200px; object-fit: cover;"/>
         <div class="card-body">
         <h5 class="card-title mb-2">{{ acc.username }}</h5>
-        <p class="card-text mb-1"><strong>Followers : </strong>{{ acc.follow }}</p>
-        <p class="card-text mb-1"><strong>Following : </strong>{{ acc.followed }}</p>
+        <p class="card-text mb-1"><strong>Followers : </strong>{{ acc.follower }}</p>
+        <p class="card-text mb-1"><strong>Following : </strong>{{ acc.follow }}</p>
         <p class="card-text"><strong>Posts : </strong>{{ acc.total_media }}</p>
         </div>
         </div>

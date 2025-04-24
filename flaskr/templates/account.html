@@ -14,8 +14,8 @@
                 <div class="card-body">
                     <h5 class="card-title text-primary">Statistiques</h5>
                     <ul class="list-group list-group-flush mb-3">
-                        <li class="list-group-item"><strong>Followers :</strong> {{ account.follow }}</li>
-                        <li class="list-group-item"><strong>Following :</strong> {{ account.followed }}</li>
+                        <li class="list-group-item"><strong>Followers :</strong> {{ account.follower }}</li>
+                        <li class="list-group-item"><strong>Following :</strong> {{ account.follow }}</li>
                         <li class="list-group-item"><strong>Posts :</strong> {{ account.total_media }}</li>
                     </ul>
                 </div>
@@ -135,7 +135,7 @@
         }
     }
 
-    renderChart('viewsChart', 'Vues', "/static/data/{{ account.username }}/views_data.json", '#1a73e8');
+    renderChart('viewsChart', 'Vues', {{ views_data | tojson }}, '#1a73e8');
     renderChart('followsChart', 'Follows', {{ follows_data | tojson }}, '#28a745', 'bar');
     renderChart('likesChart', 'Likes', {{ likes_data | tojson }}, '#e91e63');
     renderChart('commentsChart', 'Commentaires', {{ comments_data | tojson }}, '#ff9800', 'bar');
