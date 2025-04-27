@@ -30,4 +30,4 @@ def login():
 @bp.route('/logout')
 def logout():
     session.pop('logged_in', None)
-    return redirect(url_for('auth_routes.login'))
+    return redirect(url_for('login_routes.login'))

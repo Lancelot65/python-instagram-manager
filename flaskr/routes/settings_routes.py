@@ -7,8 +7,7 @@ bp = Blueprint('settings_routes', __name__)
 
 @bp.route('/settings')
 def settings():
-    accounts = load_accounts()
-    return render_template('settings.html', accounts=accounts, selected=None, settings=True)
+    return render_template('settings.html', selected=None, settings=True)
 
 @bp.route('/add_account', methods=['POST'])
 def add_account_route():
@@ -18,7 +17,7 @@ def add_account_route():
         flash(f"Already follow", "success")
         return redirect(url_for('index_routes.index'))
     try:
-        Instagram(username).save_user()
+        Instagram(username).add_user()
         data = load_accounts(username=username)
         profile_picture_url = data["profile_picture_hd"] or data["profile_picture"]
         if profile_picture_url:
@@ -26,5 +25,5 @@ def add_account_route():
         flash(f"✅ Le compte « {username} » a été ajouté avec succès !", "success")
     except Exception as e:
         print(e)
-        flash(f"Impossible de récupéré les donnée de « {username} »", "defaite")
+        flash(f"Impossible de récupéré les donnée de « {username} »", "danger ")
     return redirect(url_for('index_routes.index'))

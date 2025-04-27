@@ -45,30 +45,39 @@ class Instagram:
         self.username = username
         self.client = httpx.Client(
             headers={
-                # This is the internal ID of an Instagram backend app. It doesn't change often.
                 "x-ig-app-id": "936619743392459",
-                # Use browser-like features
                 "User-Agent": random.choice(USER_AGENTS),
                 "Accept-Language": "en-US,en;q=0.9,ru;q=0.8",
                 "Accept-Encoding": "gzip, deflate, br",
                 "Accept": "*/*",
             }
         )
-        self.data = None
-        self.scrape_user()
-        self.save_user()
+
+    def add_user(self):
+        if os.path.exists(os.path.join(os.path.dirname(__file__), f"static/profiles/{self.username}.json")):
+            raise Exception("Profile already exists")
+        else:
+            self.data = None
+            self.scrape_user()
+            self.save_user()
+
+    def update_user(self):
+        if not os.path.exists(os.path.join(os.path.dirname(__file__), f"static/profiles/{self.username}.json")):
+            raise Exception("Profile does not exist")
+        else:
+            self.data = None
+            self.scrape_user()
+            self.save_user()
 
     def scrape_user(self):
         try:
-            print(self.username)
-            
             result = self.client.get(
                 f"https://i.instagram.com/api/v1/users/web_profile_info/?username={self.username}",
             )
             if result.status_code == 200:
                 data = json.loads(result.content)
                 if "data" in data and "user" in data["data"]:
-                    self.data = self.clean_data(data["data"]["user"])
+                    self.data = data["data"]["user"]
                 else:
                     raise KeyError("The expected keys 'data' or 'user' are missing in the API response.")
             else:
@@ -79,31 +88,36 @@ class Instagram:
     def save_user(self):
         """Save Instagram user's data to a file"""
         if self.data:
-            creator_folder = os.path.join(os.path.dirname(__file__), f"static/data/{self.data['username']}")
+            creator_folder = os.path.join(os.path.dirname(__file__), "static/profiles/")
             os.makedirs(creator_folder, exist_ok=True)
-            file_path = f"{creator_folder}/{self.data['username']}.json"
-            old_data = {}
+            file_path = os.path.join(creator_folder, f"{self.username}.json")
 
-            # Load old data if the file exists
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(self.profiles_data(self.data), f, ensure_ascii=False, indent=4)
+            self.update_database()
+        else:
+            raise ValueError("No user data available to save.")
+
+    def update_database(self):
+        if self.data:
+            creator_folder = os.path.join(os.path.dirname(__file__), "static/data/")
+            os.makedirs(creator_folder, exist_ok=True)
+            file_path = os.path.join(creator_folder, f"{self.username}.json")
+            old_data = []
             if os.path.exists(file_path):
                 with open(file_path, "r", encoding="utf-8") as f:
-                    try:
-                        old_data = json.load(f)
-                    except json.JSONDecodeError:
-                        print(f"Erreur de lecture du fichier JSON : {file_path}")
+                    old_data = json.load(f)
 
-            # Ajouter les nouvelles données sous la clé de la date actuelle
-            current_date = datetime.now().strftime("%y.%m.%d")
-            old_data[current_date] = self.data
+            # Append new data to old data
+            old_data.append(self.chart_data(self.data))
 
-            # Sauvegarder les données fusionnées dans le fichier
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(old_data, f, ensure_ascii=False, indent=4)
         else:
             raise ValueError("No user data available to save.")
 
     @staticmethod
-    def clean_data(data):
+    def profiles_data(data):
         temp = {
             "biography": data.get("biography", ""),
             "follow": data.get("edge_follow", {}).get("count", 0),
@@ -112,7 +126,15 @@ class Instagram:
             "profile_picture": data.get("profile_pic_url", ""),
             "profile_picture_hd": data.get("profile_pic_url_hd", ""),
             "total_media": data.get("edge_owner_to_timeline_media", {}).get("count", 0),
-            "last_download" : datetime.now().strftime("%y.%m.%d"),
+            "last_download" : datetime.now().strftime("%y.%m.%d %H:%M:%S"),
+        }
+        return temp
+
+    @staticmethod
+    def chart_data(data):
+        temp = {
+            "follow":  data.get("edge_follow", {}).get("count", 0),
+            "follower": data.get("edge_followed_by", {}).get("count", 0),
             "reel": [
             {
                 "view": reel["node"].get("video_view_count", 0),
@@ -125,5 +147,7 @@ class Instagram:
             }
             for reel in data.get("edge_owner_to_timeline_media", {}).get("edges", [])
             ],
+            "time": datetime.now().strftime("%y.%m.%d %H:%M:%S"),
+
         }
         return temp
