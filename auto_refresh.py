@@ -10,7 +10,7 @@ def updates():
         
         last_download_time = datetime.strptime(account['last_download'], "%y.%m.%d %H:%M:%S")
         
-        if datetime.now() - last_download_time >= timedelta(hours=1, minutes=50):
+        if datetime.now() - last_download_time >= timedelta(hours=1, minutes=55):
             try:
                 insta = Instagram(username)
                 insta.update_user()

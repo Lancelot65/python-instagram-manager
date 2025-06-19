@@ -32,25 +32,59 @@
         </div>
     </div>
 
+    <!-- Sélecteur de timeframe -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="bg-white rounded-4 p-3 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="text-primary fw-bold mb-0">Analyse des performances</h5>
+                    <div class="d-flex align-items-center">
+                        <label for="timeframe" class="form-label me-3 mb-0">Période :</label>
+                        <select id="timeframe" class="form-select" style="width: auto;" onchange="updateCharts()">
+                            <option value="7">7 derniers jours</option>
+                            <option value="30" selected>30 derniers jours</option>
+                            <option value="90">90 derniers jours</option>
+                            <option value="365">1 an</option>
+                            <option value="all">Toutes les données</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Espace pour les graphiques -->
     <div class="row g-4">
         <div class="col-md-6">
             <div class="bg-white rounded-4 p-3 shadow-sm h-100">
-                <canvas id="viewsChart"></canvas>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="bg-white rounded-4 p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-primary fw-semibold mb-0">Évolution des Follows</h6>
+                    <div class="spinner-border spinner-border-sm text-primary d-none" id="followsLoader" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
                 <canvas id="followsChart"></canvas>
             </div>
         </div>
         <div class="col-md-6">
             <div class="bg-white rounded-4 p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-primary fw-semibold mb-0">Évolution des Likes</h6>
+                    <div class="spinner-border spinner-border-sm text-primary d-none" id="likesLoader" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
                 <canvas id="likesChart"></canvas>
             </div>
         </div>
         <div class="col-md-6">
             <div class="bg-white rounded-4 p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-primary fw-semibold mb-0">Évolution des Commentaires</h6>
+                    <div class="spinner-border spinner-border-sm text-primary d-none" id="commentsLoader" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
                 <canvas id="commentsChart"></canvas>
             </div>
         </div>
@@ -62,50 +96,208 @@
 </div>
 
 <!-- ChartJS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const labels = Object.keys({{ views_data | tojson }});
+    let followsChart, likesChart, commentsChart;
+    const accountUsername = '{{ account.username }}';
 
-    function renderChart(id, label, data, color, type='line') {
-        new Chart(document.getElementById(id).getContext('2d'), {
-            type: type,
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: label,
-                    data: Object.values(data),
-                    backgroundColor: type === 'bar' ? color : color + '33',
-                    borderColor: color,
-                    fill: type === 'line',
-                    tension: 0.3
-                }]
-            },
+    // Initialisation au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
+        updateCharts();
+    });
+
+    function initializeCharts() {
+        const commonConfig = {
+            type: 'line',
             options: {
                 responsive: true,
-                scales: { y: { beginAtZero: true } },
-                plugins: { legend: { display: true } }
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 4,
+                        hoverRadius: 6
+                    }
+                }
+            }
+        };
+
+        // Graphique des follows
+        const followsCtx = document.getElementById('followsChart').getContext('2d');
+        followsChart = new Chart(followsCtx, {
+            ...commonConfig,
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Follows',
+                    data: [],
+                    backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                    borderColor: '#28a745',
+                    fill: true,
+                    tension: 0.3
+                }]
+            }
+        });
+
+        // Graphique des likes
+        const likesCtx = document.getElementById('likesChart').getContext('2d');
+        likesChart = new Chart(likesCtx, {
+            ...commonConfig,
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Likes',
+                    data: [],
+                    backgroundColor: 'rgba(233, 30, 99, 0.2)',
+                    borderColor: '#e91e63',
+                    fill: true,
+                    tension: 0.3
+                }]
+            }
+        });
+
+        // Graphique des commentaires
+        const commentsCtx = document.getElementById('commentsChart').getContext('2d');
+        commentsChart = new Chart(commentsCtx, {
+            ...commonConfig,
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Commentaires',
+                    data: [],
+                    backgroundColor: 'rgba(255, 152, 0, 0.2)',
+                    borderColor: '#ff9800',
+                    fill: true,
+                    tension: 0.3
+                }]
             }
         });
     }
 
-    async function loadChartData(chartId, label, filePath, color, type = 'line') {
-        try {
-            const response = await fetch(filePath);
-            const data = await response.json();
-
-            // Définir les labels si ce n'est pas encore fait
-            if (labels.length === 0) {
-                Object.keys(data).forEach(key => labels.push(key));
-            }
-
-            renderChart(chartId, label, Object.values(data), color, type);
-        } catch (error) {
-            console.error(`Erreur lors du chargement des données pour ${chartId}:`, error);
-        }
+    function updateCharts() {
+        const timeframe = document.getElementById('timeframe').value;
+        
+        // Afficher les loaders
+        showLoaders();
+        
+        // Faire la requête AJAX pour récupérer les nouvelles données
+        fetch(`/api/account/${accountUsername}/statistics?timeframe=${timeframe}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Mettre à jour les graphiques
+                updateChart(followsChart, data.follows);
+                updateChart(likesChart, data.likes);
+                updateChart(commentsChart, data.comments);
+                
+                // Masquer les loaders
+                hideLoaders();
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des données:', error);
+                hideLoaders();
+                
+                // Afficher un message d'erreur
+                showErrorMessage('Erreur lors du chargement des données. Veuillez réessayer.');
+            });
     }
 
-    renderChart('viewsChart', 'Vues', {{ views_data | tojson }}, '#1a73e8');
-    renderChart('followsChart', 'Follows', {{ follows_data | tojson }}, '#28a745', 'bar');
-    renderChart('likesChart', 'Likes', {{ likes_data | tojson }}, '#e91e63');
-    renderChart('commentsChart', 'Commentaires', {{ comments_data | tojson }}, '#ff9800', 'bar');
+    function updateChart(chart, data) {
+        chart.data.labels = data.labels;
+        chart.data.datasets[0].data = data.values;
+        chart.update('active');
+    }
+
+    function showLoaders() {
+        document.querySelectorAll('[id$="Loader"]').forEach(loader => {
+            loader.classList.remove('d-none');
+        });
+        
+        // Réduire l'opacité des graphiques
+        document.querySelectorAll('canvas').forEach(canvas => {
+            canvas.style.opacity = '0.6';
+        });
+    }
+
+    function hideLoaders() {
+        document.querySelectorAll('[id$="Loader"]').forEach(loader => {
+            loader.classList.add('d-none');
+        });
+        
+        // Restaurer l'opacité des graphiques
+        document.querySelectorAll('canvas').forEach(canvas => {
+            canvas.style.opacity = '1';
+        });
+    }
+
+    function showErrorMessage(message) {
+        // Créer et afficher un toast d'erreur
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-danger border-0 position-fixed top-0 end-0 m-3';
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Supprimer le toast après 5 secondes
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 5000);
+    }
 </script>
+
+<style>
+    .form-select {
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .form-select:focus {
+        border-color: #1a73e8;
+        box-shadow: 0 0 0 0.2rem rgba(26, 115, 232, 0.25);
+    }
+    
+    canvas {
+        height: 300px !important;
+    }
+    
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+</style>
 {% endblock %}
